@@ -160,14 +160,18 @@ async function onRecordStop() {
   $("record-btn").disabled = true;
   try {
     const blob = new Blob(state.chunks, { type: state.mediaRecorder.mimeType || "" });
-    const pcmB64 = await blobToPcm16k(blob);
-    if (!pcmB64) throw new Error("音频转换失败");
+    const conv = await blobToPcm16k(blob);
+    if (!conv || !conv.b64) throw new Error("音频转换失败");
+    if (audioPeak(conv.samples) < 1000) {
+      setStatus("录音声音太小，请靠近麦克风、大声朗读（这次不会消耗重读次数）");
+      return;
+    }
     const r = await call("evaluate", {
       code: state.code,
       name: state.name,
       text: state.assignment.sentences[state.idx],
       idx: state.idx,
-      audio: pcmB64,
+      audio: conv.b64,
       duration_ms: durationMs,
     });
     if (!r.ok) throw new Error(r.error || "评分失败");
@@ -221,7 +225,16 @@ async function blobToPcm16k(blob) {
     const s = Math.max(-1, Math.min(1, samples[i]));
     int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
   }
-  return bytesToBase64(new Uint8Array(int16.buffer));
+  return { b64: bytesToBase64(new Uint8Array(int16.buffer)), samples: int16 };
+}
+
+function audioPeak(samples) {
+  let peak = 0;
+  for (let i = 0; i < samples.length; i++) {
+    const a = Math.abs(samples[i]);
+    if (a > peak) peak = a;
+  }
+  return peak;
 }
 
 // ---------------- 结果显示 ----------------
