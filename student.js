@@ -101,6 +101,7 @@ async function enter() {
   state.assignment = loadedAssignment;
   state.idx = 0;
   state.best = [];
+  $("enter-msg").textContent = "";
   $("title-display").textContent = state.assignment.title || ("作业 " + code);
   show("step-practice");
   loadSentence();
@@ -292,9 +293,29 @@ function finish() {
   });
 }
 
+function restart() {
+  state.code = "";
+  state.name = "";
+  state.assignment = null;
+  state.idx = 0;
+  state.best = [];
+  $("enter-msg").textContent = "";
+  show("step-enter");
+}
+
 // ---------------- 初始化 ----------------
 window.addEventListener("DOMContentLoaded", () => {
   $("code-input").addEventListener("input", loadAssignment);
+  $("btn-enter").addEventListener("click", enter);
+  $("listen-btn").addEventListener("click", () => {
+    if (state.assignment && state.assignment.sentences[state.idx]) {
+      speakText(state.assignment.sentences[state.idx]);
+    }
+  });
+  $("record-btn").addEventListener("click", toggleRecord);
+  $("retry-btn").addEventListener("click", retry);
+  $("next-btn").addEventListener("click", next);
+  $("btn-restart").addEventListener("click", restart);
   const pre = new URLSearchParams(location.search).get("code");
   if (pre) { $("code-input").value = pre; loadAssignment(); }
 });

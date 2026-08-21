@@ -45,7 +45,7 @@ async function publish() {
   try {
     const r = await call("publish", { code, title, text });
     if (!r.ok) { setMsg($("pub-msg"), "发布失败：" + r.error); return; }
-    const url = location.origin + "/index.html?code=" + encodeURIComponent(code);
+    const url = location.href.replace(/teacher\.html.*$/, "") + "index.html?code=" + encodeURIComponent(code);
     $("pub-msg").classList.add("ok");
     $("pub-msg").innerHTML = "发布成功！共 " + r.sentences.length + " 句。<br>学生链接（复制发到家长群）：" +
       `<input readonly value="${escapeHtml(url)}" onclick="this.select()" style="width:100%;margin-top:6px">`;
@@ -191,4 +191,11 @@ window.addEventListener("DOMContentLoaded", () => {
   if (!API || API.indexOf("请替换") >= 0) {
     setMsg($("pub-msg"), "提示：config.js 里的函数地址还没填（部署时配置）");
   }
+  document.querySelectorAll(".tab-btn").forEach((b) =>
+    b.addEventListener("click", () => showTab(b.dataset.tab)));
+  $("btn-gen").addEventListener("click", genCode);
+  $("btn-publish").addEventListener("click", publish);
+  $("btn-roster").addEventListener("click", saveRoster);
+  $("btn-refresh").addEventListener("click", loadAssignments);
+  $("btn-csv").addEventListener("click", downloadCsv);
 });
