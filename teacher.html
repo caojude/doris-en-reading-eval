@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>朗读评测 · 教师后台</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: #f2f6fa;
+    color: #234;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 16px;
+  }
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+  header h1 { font-size: 20px; color: #1e5a8a; }
+  header label { font-size: 14px; color: #456; }
+  header input {
+    margin-left: 6px;
+    padding: 8px 10px;
+    border: 2px solid #cfe3f5;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+  }
+  nav { display: flex; gap: 8px; margin-bottom: 16px; }
+  .tab-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 15px;
+    border: none;
+    border-radius: 10px;
+    background: #dbe8f4;
+    color: #456;
+    cursor: pointer;
+  }
+  .tab-btn.active { background: #4a9ede; color: #fff; }
+  section { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(30,90,138,.08); }
+  .hidden { display: none !important; }
+  h2 { font-size: 17px; color: #1e5a8a; margin-bottom: 14px; }
+  h3 { font-size: 15px; color: #1e5a8a; margin: 18px 0 8px; }
+  label { display: block; font-size: 14px; color: #456; margin-bottom: 12px; }
+  input, textarea, select {
+    width: 100%;
+    margin-top: 6px;
+    padding: 10px;
+    font-size: 14px;
+    border: 2px solid #cfe3f5;
+    border-radius: 8px;
+    outline: none;
+    font-family: inherit;
+  }
+  input:focus, textarea:focus, select:focus { border-color: #4a9ede; }
+  textarea { line-height: 1.6; }
+  button {
+    padding: 10px 18px;
+    font-size: 14px;
+    border: none;
+    border-radius: 8px;
+    background: #4a9ede;
+    color: #fff;
+    cursor: pointer;
+  }
+  button:hover { background: #3d8bc7; }
+  .row { display: flex; gap: 10px; align-items: center; }
+  .row input, .row select { flex: 1; margin-top: 0; }
+  .msg { color: #c66; font-size: 14px; margin-top: 10px; min-height: 20px; }
+  .msg.ok { color: #3a9d5d; }
+  .cards { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
+  .stat-card {
+    flex: 1;
+    min-width: 120px;
+    background: #eef6fd;
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-card b { display: block; font-size: 22px; color: #1e5a8a; }
+  .stat-card span { font-size: 12px; color: #789; }
+  .table-wrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 14px; }
+  th, td { border: 1px solid #dde8f2; padding: 8px 10px; text-align: center; }
+  th { background: #eef6fd; color: #1e5a8a; }
+  .sent-item { margin-bottom: 14px; }
+  .sent-text { font-size: 15px; color: #234; margin-bottom: 6px; }
+  .muted { color: #8aa; font-size: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    padding: 5px 12px;
+    border-radius: 14px;
+    font-size: 14px;
+    color: #fff;
+  }
+  .chip.w-good { background: #52b96c; }
+  .chip.w-mid  { background: #e8b53a; }
+  .chip.w-bad  { background: #e25f5f; }
+  .chip i { font-style: normal; font-size: 11px; opacity: .9; margin-left: 4px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>朗读评测 · 教师后台</h1>
+  <label>管理密码 <input id="pw-input" type="password" placeholder="部署时设置的密码"></label>
+</header>
+<nav>
+  <button class="tab-btn active" data-tab="tab-publish">发布作业</button>
+  <button class="tab-btn" data-tab="tab-roster">班级名单</button>
+  <button class="tab-btn" data-tab="tab-report">学情报告</button>
+</nav>
+<main>
+  <section id="tab-publish">
+    <h2>发布新作业</h2>
+    <label>作业码（学生输入的数字）
+      <div class="row">
+        <input id="pub-code" inputmode="numeric" maxlength="10" placeholder="如 1234">
+        <button id="btn-gen" type="button">随机生成</button>
+      </div>
+    </label>
+    <label>作业标题 <input id="pub-title" placeholder="如：Unit 1 第 3 课"></label>
+    <label>课文内容（把课本句子粘贴进来，一句一行，句末带标点，程序会自动按句切分）
+      <textarea id="pub-text" rows="10" placeholder="Hello, I'm Mike.&#10;What's your name?&#10;Nice to meet you."></textarea>
+    </label>
+    <button id="btn-publish">发布作业</button>
+    <p id="pub-msg" class="msg"></p>
+  </section>
+
+  <section id="tab-roster" class="hidden">
+    <h2>班级名单（一行一个名字，保存后学生才能提交）</h2>
+    <textarea id="roster-input" rows="15" placeholder="张三&#10;李四&#10;王五"></textarea>
+    <button id="btn-roster">保存名单</button>
+    <p id="roster-msg" class="msg"></p>
+  </section>
+
+  <section id="tab-report" class="hidden">
+    <h2>学情报告</h2>
+    <div class="row">
+      <select id="report-select"></select>
+      <button id="btn-refresh" type="button">刷新</button>
+    </div>
+    <p id="report-msg" class="msg"></p>
+    <div id="report-summary" class="cards"></div>
+    <button id="btn-csv">导出表格（Excel 可打开）</button>
+    <h3>学生明细</h3>
+    <div class="table-wrap"><table id="student-table"></table></div>
+    <h3>逐句错误统计（红色的词 = 全班错得多的词，就是你的教学重点）</h3>
+    <div id="sentence-stats"></div>
+    <p id="unfinished" class="msg"></p>
+  </section>
+</main>
+<script src="config.js"></script>
+<script src="teacher.js"></script>
+</body>
+</html>
