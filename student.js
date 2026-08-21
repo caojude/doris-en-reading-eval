@@ -138,7 +138,7 @@ async function toggleRecord() {
   $("record-btn").textContent = "停止录音";
   $("record-btn").classList.add("recording");
   $("listen-btn").disabled = true;
-  setStatus("正在录音，请大声朗读上面这句话…");
+  setStatus("正在录音，大声读出来吧…");
 }
 
 function stopRecord() {
@@ -154,7 +154,7 @@ async function onRecordStop() {
   $("record-btn").textContent = "开始录音";
   $("record-btn").classList.remove("recording");
   $("listen-btn").disabled = false;
-  if (!state.chunks.length) { setStatus("没有录到声音，请重试"); return; }
+  if (!state.chunks.length) { setStatus("没有录到声音，再试一次吧"); return; }
 
   setStatus("正在评分…");
   $("record-btn").disabled = true;
@@ -163,7 +163,7 @@ async function onRecordStop() {
     const conv = await blobToPcm16k(blob);
     if (!conv || !conv.b64) throw new Error("音频转换失败");
     if (audioPeak(conv.samples) < 1000) {
-      setStatus("录音声音太小，请靠近麦克风、大声朗读（这次不会消耗重读次数）");
+      setStatus("声音有点小哦，靠近麦克风、大声读一遍吧！（这次不扣次数）");
       return;
     }
     const r = await call("evaluate", {
@@ -255,9 +255,9 @@ function renderResult(res) {
     chips.appendChild(span);
   });
   if (res.is_rejected) {
-    setStatus("没有听清，请再读一遍");
+    setStatus("没有听清，再读一遍吧");
   } else {
-    setStatus(res.total >= 80 ? "很好！" : "再试试，可以先听示范再重读");
+    setStatus(res.total >= 80 ? "太棒了！" : "加油！先听一下示范，再读一遍会更棒！");
   }
   updateAttemptsText();
 }

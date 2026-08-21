@@ -3,12 +3,12 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>英语朗读练习</title>
+<title>Doris的英语朗读妙妙屋</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: linear-gradient(160deg, #e8f4ff, #d4ecff);
+    background: linear-gradient(160deg, #fff3e2, #ffe2ec);
     min-height: 100vh;
     display: flex;
     justify-content: center;
@@ -16,87 +16,88 @@
   }
   #app { width: 100%; max-width: 480px; }
   section { margin-top: 24px; }
-  h1 { font-size: 26px; color: #1e5a8a; text-align: center; }
-  .sub { text-align: center; color: #5b7fa0; margin: 8px 0 20px; }
+  h1 { font-size: 28px; color: #e2703f; text-align: center; font-weight: 700; }
+  .sub { text-align: center; color: #c98a5e; margin: 8px 0 20px; }
   .card {
     background: #fff;
-    border-radius: 16px;
+    border-radius: 22px;
     padding: 20px;
-    box-shadow: 0 4px 16px rgba(30, 90, 138, .12);
+    box-shadow: 0 4px 16px rgba(226, 112, 63, .14);
     margin-top: 12px;
   }
-  label { display: block; color: #456; font-size: 14px; margin-bottom: 12px; }
+  label { display: block; color: #8a6a4f; font-size: 14px; margin-bottom: 12px; }
   input, select {
     width: 100%;
     margin-top: 6px;
     padding: 12px;
     font-size: 16px;
-    border: 2px solid #cfe3f5;
-    border-radius: 10px;
+    border: 2px solid #f5d9c4;
+    border-radius: 12px;
     outline: none;
   }
-  input:focus, select:focus { border-color: #4a9ede; }
+  input:focus, select:focus { border-color: #ff9a5c; }
   button {
     width: 100%;
     padding: 14px;
     font-size: 17px;
     border: none;
-    border-radius: 12px;
-    background: #4a9ede;
+    border-radius: 14px;
+    background: #ff8a5c;
     color: #fff;
     cursor: pointer;
     margin-top: 8px;
+    font-weight: 600;
   }
-  button:disabled { background: #b9cfdf; cursor: not-allowed; }
-  button.secondary { background: #7fb8e6; }
+  button:disabled { background: #e9d3c3; cursor: not-allowed; }
+  button.secondary { background: #8ec5ef; }
   .btn-row { display: flex; gap: 10px; }
   .btn-row button { flex: 1; }
   .hidden { display: none !important; }
   .topbar {
     display: flex;
     justify-content: space-between;
-    color: #1e5a8a;
+    color: #c25e33;
     font-size: 15px;
     padding: 0 4px;
     margin-bottom: 4px;
   }
   .sentence {
-    font-size: 22px;
+    font-size: 24px;
     line-height: 1.5;
-    color: #234;
+    color: #4a3a2c;
     text-align: center;
     padding: 10px 0 16px;
     min-height: 60px;
   }
   .msg { color: #c66; font-size: 14px; text-align: center; margin-top: 10px; min-height: 20px; }
-  .score { text-align: center; font-size: 18px; color: #456; margin: 12px 0 8px; }
-  .score b { font-size: 26px; color: #e8922f; }
+  .score { text-align: center; font-size: 18px; color: #8a6a4f; margin: 12px 0 8px; }
+  .score b { font-size: 26px; color: #f2773f; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 8px 0; }
   .chip {
     padding: 8px 14px;
-    border-radius: 20px;
+    border-radius: 22px;
     font-size: 17px;
     color: #fff;
     cursor: pointer;
     user-select: none;
   }
-  .chip.w-good { background: #52b96c; }
-  .chip.w-mid  { background: #e8b53a; }
+  .chip.w-good { background: #4caf6d; }
+  .chip.w-mid  { background: #f0b429; }
   .chip.w-bad  { background: #e25f5f; }
-  .tip { color: #8aa; font-size: 12px; text-align: center; margin: 4px 0 10px; }
+  .tip { color: #b08a6a; font-size: 12px; text-align: center; margin: 4px 0 10px; }
   .recording { animation: pulse 1.2s infinite; }
-  @keyframes pulse { 0%,100% { background: #4a9ede; } 50% { background: #e25f5f; } }
-  .big-score { text-align: center; font-size: 20px; color: #456; margin-top: 12px; }
-  .big-score b { font-size: 40px; color: #e8922f; }
+  @keyframes pulse { 0%,100% { background: #ff8a5c; } 50% { background: #e25f5f; } }
+  .big-score { text-align: center; font-size: 20px; color: #8a6a4f; margin-top: 12px; }
+  .big-score b { font-size: 40px; color: #f2773f; }
   #final-list { list-style: none; margin: 16px 0; }
   #final-list li {
     background: #fff;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 10px 14px;
     margin-bottom: 8px;
     font-size: 14px;
-    color: #345;
-    box-shadow: 0 2px 8px rgba(30,90,138,.08);
+    color: #4a3a2c;
+    box-shadow: 0 2px 8px rgba(226,112,63,.1);
   }
 </style>
 </head>
@@ -104,8 +105,8 @@
 <div id="app">
 
   <section id="step-enter">
-    <h1>英语朗读练习</h1>
-    <p class="sub">跟着示范读，AI 给你的发音打分</p>
+    <h1>Doris的英语朗读妙妙屋</h1>
+    <p class="sub">和 Doris 一起读英语，AI 小老师帮你打分加油！</p>
     <div class="card">
       <label>作业码
         <input id="code-input" inputmode="numeric" placeholder="老师发的 4 位作业码">
@@ -133,7 +134,7 @@
       <div id="result-area" class="hidden">
         <p class="score">得分 <b id="score-total"></b></p>
         <div id="word-chips" class="chips"></div>
-        <p class="tip">点单词听发音 · 绿色=好 黄色=一般 红色=需练习</p>
+        <p class="tip">点单词听发音 · 绿色=真棒 黄色=加油 红色=再练练</p>
         <div class="btn-row">
           <button id="retry-btn" class="secondary">再读一遍</button>
           <button id="next-btn">下一句</button>

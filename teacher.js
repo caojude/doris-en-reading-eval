@@ -162,6 +162,25 @@ function renderReport(r) {
   }
 }
 
+async function deleteAssignment() {
+  const code = $("report-select").value;
+  if (!code) { setMsg($("report-msg"), "请先选择一个作业"); return; }
+  if (!confirm("确定删除作业 " + code + " 吗？\n删除后学生端的这个作业链接就作废了，成绩数据也会一起删除。")) return;
+  try {
+    const r = await call("delete", { code });
+    if (!r.ok) { setMsg($("report-msg"), "删除失败：" + r.error); return; }
+    setMsg($("report-msg"), "已删除作业 " + code, true);
+    lastReport = null;
+    $("report-summary").innerHTML = "";
+    $("student-table").innerHTML = "";
+    $("sentence-stats").innerHTML = "";
+    setMsg($("unfinished"), "");
+    await loadAssignments();
+  } catch (e) {
+    setMsg($("report-msg"), "删除失败：" + e.message);
+  }
+}
+
 function csvCell(v) {
   const s = String(v);
   return /[",\r\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
@@ -198,4 +217,5 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-roster").addEventListener("click", saveRoster);
   $("btn-refresh").addEventListener("click", loadAssignments);
   $("btn-csv").addEventListener("click", downloadCsv);
+  $("btn-delete").addEventListener("click", deleteAssignment);
 });

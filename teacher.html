@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>朗读评测 · 教师后台</title>
+<title>Doris的英语朗读妙妙屋 · 教师后台</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-    background: #f2f6fa;
-    color: #234;
+    background: #fdf6ee;
+    color: #4a3a2c;
     max-width: 900px;
     margin: 0 auto;
     padding: 16px;
@@ -22,12 +22,12 @@
     gap: 10px;
     margin-bottom: 12px;
   }
-  header h1 { font-size: 20px; color: #1e5a8a; }
-  header label { font-size: 14px; color: #456; }
+  header h1 { font-size: 20px; color: #d2602f; }
+  header label { font-size: 14px; color: #8a6a4f; }
   header input {
     margin-left: 6px;
     padding: 8px 10px;
-    border: 2px solid #cfe3f5;
+    border: 2px solid #f0ddc8;
     border-radius: 8px;
     font-size: 14px;
     outline: none;
@@ -39,60 +39,62 @@
     font-size: 15px;
     border: none;
     border-radius: 10px;
-    background: #dbe8f4;
-    color: #456;
+    background: #f5e6d3;
+    color: #8a6a4f;
     cursor: pointer;
   }
-  .tab-btn.active { background: #4a9ede; color: #fff; }
-  section { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(30,90,138,.08); }
+  .tab-btn.active { background: #ff8a5c; color: #fff; }
+  section { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 2px 10px rgba(210,96,47,.08); }
   .hidden { display: none !important; }
-  h2 { font-size: 17px; color: #1e5a8a; margin-bottom: 14px; }
-  h3 { font-size: 15px; color: #1e5a8a; margin: 18px 0 8px; }
-  label { display: block; font-size: 14px; color: #456; margin-bottom: 12px; }
+  h2 { font-size: 17px; color: #d2602f; margin-bottom: 14px; }
+  h3 { font-size: 15px; color: #d2602f; margin: 18px 0 8px; }
+  label { display: block; font-size: 14px; color: #8a6a4f; margin-bottom: 12px; }
   input, textarea, select {
     width: 100%;
     margin-top: 6px;
     padding: 10px;
     font-size: 14px;
-    border: 2px solid #cfe3f5;
+    border: 2px solid #f0ddc8;
     border-radius: 8px;
     outline: none;
     font-family: inherit;
   }
-  input:focus, textarea:focus, select:focus { border-color: #4a9ede; }
+  input:focus, textarea:focus, select:focus { border-color: #ff9a5c; }
   textarea { line-height: 1.6; }
   button {
     padding: 10px 18px;
     font-size: 14px;
     border: none;
     border-radius: 8px;
-    background: #4a9ede;
+    background: #ff8a5c;
     color: #fff;
     cursor: pointer;
   }
-  button:hover { background: #3d8bc7; }
+  button:hover { background: #f5773f; }
+  button.danger { background: #e25f5f; }
+  button.danger:hover { background: #cf4f4f; }
   .row { display: flex; gap: 10px; align-items: center; }
   .row input, .row select { flex: 1; margin-top: 0; }
   .msg { color: #c66; font-size: 14px; margin-top: 10px; min-height: 20px; }
   .msg.ok { color: #3a9d5d; }
+  .muted { color: #a08a72; font-size: 12px; margin-top: 6px; }
   .cards { display: flex; gap: 10px; flex-wrap: wrap; margin: 10px 0; }
   .stat-card {
     flex: 1;
     min-width: 120px;
-    background: #eef6fd;
+    background: #fff3e6;
     border-radius: 10px;
     padding: 12px;
     text-align: center;
   }
-  .stat-card b { display: block; font-size: 22px; color: #1e5a8a; }
-  .stat-card span { font-size: 12px; color: #789; }
+  .stat-card b { display: block; font-size: 22px; color: #d2602f; }
+  .stat-card span { font-size: 12px; color: #a08a72; }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
-  th, td { border: 1px solid #dde8f2; padding: 8px 10px; text-align: center; }
-  th { background: #eef6fd; color: #1e5a8a; }
+  th, td { border: 1px solid #f0e0cc; padding: 8px 10px; text-align: center; }
+  th { background: #fff0e0; color: #b85a2a; }
   .sent-item { margin-bottom: 14px; }
-  .sent-text { font-size: 15px; color: #234; margin-bottom: 6px; }
-  .muted { color: #8aa; font-size: 12px; }
+  .sent-text { font-size: 15px; color: #4a3a2c; margin-bottom: 6px; }
   .chips { display: flex; flex-wrap: wrap; gap: 6px; }
   .chip {
     padding: 5px 12px;
@@ -108,7 +110,7 @@
 </head>
 <body>
 <header>
-  <h1>朗读评测 · 教师后台</h1>
+  <h1>Doris的英语朗读妙妙屋 · 教师后台</h1>
   <label>管理密码 <input id="pw-input" type="password" placeholder="部署时设置的密码"></label>
 </header>
 <nav>
@@ -141,11 +143,13 @@
   </section>
 
   <section id="tab-report" class="hidden">
-    <h2>学情报告</h2>
+    <h2>学情报告（历次作业都保留在这里）</h2>
     <div class="row">
       <select id="report-select"></select>
       <button id="btn-refresh" type="button">刷新</button>
+      <button id="btn-delete" type="button" class="danger">删除此作业</button>
     </div>
+    <p class="muted">删除作业后，学生端的对应链接作废，成绩数据也会一并删除。</p>
     <p id="report-msg" class="msg"></p>
     <div id="report-summary" class="cards"></div>
     <button id="btn-csv">导出表格（Excel 可打开）</button>
