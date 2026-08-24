@@ -31,7 +31,7 @@ function escapeHtml(s) {
 }
 
 function show(id) {
-  ["step-enter", "step-practice", "step-done", "step-feedback"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+  ["step-enter", "step-practice", "step-done", "step-feedback", "step-history"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 }
 
 function setStatus(text) { $("status").textContent = text || ""; }
@@ -490,6 +490,66 @@ function restart() {
   show("step-enter");
 }
 
+// ---------------- 我的成绩单 ----------------
+let historyBack = "enter";
+
+async function openHistory(fromDone) {
+  let code, name, classId;
+  if (fromDone && state.assignment) {
+    code = state.code;
+    name = state.name;
+    classId = state.classId;
+    historyBack = "done";
+  } else {
+    code = $("code-input").value.trim();
+    const typed = $("name-input").value.trim();
+    if (!code) { $("enter-msg").textContent = "请先输入作业码"; return; }
+    if (!typed) { $("enter-msg").textContent = "请先输入你的名字"; return; }
+    if (!loadedAssignment || loadedAssignment.code !== code) {
+      $("enter-msg").textContent = "作业还没加载成功，请重新输入作业码";
+      return;
+    }
+    const m = matchNameEntry(typed);
+    if (!m.entry) { $("enter-msg").textContent = m.error; return; }
+    code = loadedAssignment.code;
+    name = m.entry.name;
+    classId = m.entry.class_id || "";
+    historyBack = "enter";
+  }
+  show("step-history");
+  $("history-list").innerHTML = "";
+  $("history-msg").textContent = "正在加载…";
+  try {
+    const r = await call("student_history", { code: code, name: name, class_id: classId });
+    if (!r.ok) throw new Error(r.error || "加载失败");
+    const items = r.items || [];
+    $("history-sub").textContent = name + " 的成绩单 · 共 " + items.length + " 条 · 最新的在最上面";
+    if (!items.length) {
+      $("history-list").innerHTML = "<li>还没有记录哦，快去读完一篇课文，这里就会出现你的成绩！</li>";
+    } else {
+      items.forEach((it) => {
+        const li = document.createElement("li");
+        const t = document.createElement("div");
+        t.className = "hist-title";
+        t.textContent = it.title || ("作业 " + it.code);
+        const m = document.createElement("div");
+        m.className = "hist-meta";
+        m.textContent = it.date + "　读完 " + it.done + "/" + it.total + " 句 · 平均 " + Math.round(it.avg) + " 分";
+        li.appendChild(t);
+        li.appendChild(m);
+        $("history-list").appendChild(li);
+      });
+    }
+    $("history-msg").textContent = "";
+  } catch (e) {
+    $("history-msg").textContent = "加载失败：" + e.message;
+  }
+}
+
+function closeHistory() {
+  show(historyBack);
+}
+
 // ---------------- 初始化 ----------------
 window.addEventListener("DOMContentLoaded", () => {
   $("code-input").addEventListener("input", loadAssignment);
@@ -507,6 +567,14 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-fb-send").addEventListener("click", sendFeedback);
   $("btn-fb-back").addEventListener("click", closeFeedback);
   $("btn-restart").addEventListener("click", restart);
+  $("btn-history").addEventListener("click", () => openHistory(false));
+  $("btn-history-done").addEventListener("click", () => openHistory(true));
+  $("btn-history-back").addEventListener("click", closeHistory);
+  $("btn-help").addEventListener("click", () => $("help-overlay").classList.remove("hidden"));
+  $("btn-help-close").addEventListener("click", () => $("help-overlay").classList.add("hidden"));
+  $("help-overlay").addEventListener("click", (e) => {
+    if (e.target === $("help-overlay")) $("help-overlay").classList.add("hidden");
+  });
   const pre = new URLSearchParams(location.search).get("code");
   if (pre) { $("code-input").value = pre; loadAssignment(); }
 });

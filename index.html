@@ -117,6 +117,52 @@
     color: #4a3a2c;
     box-shadow: 0 2px 8px rgba(226,112,63,.1);
   }
+  .btn-mini-row { display: flex; gap: 10px; justify-content: center; margin-top: 14px; }
+  .btn-link {
+    background: none;
+    border: none;
+    width: auto;
+    padding: 2px;
+    margin: 4px 0 0;
+    color: #e2703f;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+    font-weight: 400;
+  }
+  .overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(74, 58, 44, .45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    padding: 20px;
+  }
+  .help-card {
+    background: #fff;
+    border-radius: 22px;
+    padding: 24px;
+    max-width: 420px;
+    width: 100%;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, .25);
+  }
+  .help-card h2 { color: #e2703f; text-align: center; margin-bottom: 14px; font-size: 22px; }
+  .help-card ol { margin: 0 0 6px 20px; color: #4a3a2c; font-size: 15px; line-height: 2; }
+  .help-card ol b { color: #f2773f; }
+  #history-list { list-style: none; }
+  #history-list li {
+    background: #fff8ee;
+    border: 1px solid #f0d9b8;
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 14px;
+    color: #4a3a2c;
+  }
+  .hist-title { font-size: 16px; font-weight: 600; color: #e2703f; }
+  .hist-meta { color: #8a6a4f; font-size: 13px; margin-top: 4px; }
 </style>
 </head>
 <body>
@@ -124,7 +170,9 @@
 
   <section id="step-enter">
     <h1>Doris的英语朗读妙妙屋</h1>
-    <p class="sub">和 Doris 一起读英语，AI 小老师帮你打分加油！</p>
+    <p class="sub">和 Doris 一起读英语，AI 小老师帮你打分加油！<br>
+      <button id="btn-help" class="btn-link" type="button">不知道怎么玩？点我</button>
+    </p>
     <div class="card">
       <label>作业码
         <input id="code-input" inputmode="numeric" placeholder="老师发的 4 位作业码">
@@ -135,8 +183,9 @@
       <button id="btn-enter">开始练习</button>
       <p id="enter-msg" class="msg"></p>
     </div>
-    <div class="btn-small-wrap">
+    <div class="btn-mini-row">
       <button id="btn-feedback" class="btn-small secondary">给老师留言</button>
+      <button id="btn-history" class="btn-small secondary">我的成绩单</button>
     </div>
   </section>
 
@@ -171,7 +220,18 @@
     <p class="big-score">总分 <b id="final-score"></b></p>
     <p id="final-msg" class="msg"></p>
     <ul id="final-list"></ul>
+    <button id="btn-history-done" class="secondary">看看我的成绩单</button>
     <button id="btn-restart" class="secondary">再练一次</button>
+  </section>
+
+  <section id="step-history" class="hidden">
+    <h1>我的成绩单</h1>
+    <p class="sub" id="history-sub"></p>
+    <div class="card">
+      <ul id="history-list"></ul>
+      <p id="history-msg" class="msg"></p>
+      <button id="btn-history-back" class="secondary">返回</button>
+    </div>
   </section>
 
   <section id="step-feedback" class="hidden">
@@ -194,6 +254,20 @@
   </section>
 
 </div>
+
+<div id="help-overlay" class="overlay hidden">
+  <div class="help-card">
+    <h2>怎么玩？</h2>
+    <ol>
+      <li><b>第一步：</b>输入老师发的作业码和你的名字</li>
+      <li><b>第二步：</b>点「开始录音」，大声读屏幕上的句子</li>
+      <li><b>第三步：</b>得分出来后，点一下单词，能看到每个音的读法小秘诀</li>
+      <li><b>小秘密：</b>每读完一次作业，进步都会记在「我的成绩单」里！</li>
+    </ol>
+    <button id="btn-help-close" type="button">我知道啦！</button>
+  </div>
+</div>
+
 <datalist id="name-list"></datalist>
 <script src="config.js"></script>
 <script src="student.js"></script>
