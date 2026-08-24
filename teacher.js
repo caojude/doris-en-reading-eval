@@ -522,7 +522,7 @@ async function downloadXfDebug() {
     if (!r.ok) { setMsg($("report-msg"), "下载失败：" + r.error); return; }
     if (!r.count) { setMsg($("report-msg"), "还没有抓到数据——先让学生读几句，再来下载"); return; }
     const parts = r.items.map((it) =>
-      "===== 第 " + (Number(it.idx) + 1) + " 句（idx=" + it.idx + "） =====\n" + it.xml);
+      "===== 第 " + (Number(String(it.idx).split("_")[0]) + 1) + " 句（idx=" + it.idx + "） =====\n" + it.xml);
     const blob = new Blob([parts.join("\n\n")], { type: "text/plain;charset=utf-8" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
