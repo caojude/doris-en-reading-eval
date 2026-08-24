@@ -397,11 +397,17 @@ function renderView(v) {
     ? (v.students.reduce((a, s) => a + s.avg, 0) / v.students.length).toFixed(1)
     : "0";
   const attempts = v.students.reduce((a, s) => a + s.attempts, 0);
+  const dimsCards = (v.dims && v.dims.count) ? [
+    card("准确度", v.dims.accuracy == null ? "-" : v.dims.accuracy),
+    card("流畅度", v.dims.fluency == null ? "-" : v.dims.fluency),
+    card("完整度", v.dims.integrity == null ? "-" : v.dims.integrity),
+  ].join("") : "";
   $("report-summary").innerHTML = [
     card("完成人数", v.finished + " / " + (roster.length || "?")),
     card("全班平均分", avgAll),
     card("评测总次数", attempts),
     card("句子数", lastReport ? lastReport.assignment.sentences.length : "?"),
+    dimsCards,
   ].join("");
 
   const thead = "<tr><th>姓名</th><th>完成</th><th>平均分</th><th>重读次数</th><th>平均嗯啊</th><th>没听清</th><th>用时(分)</th></tr>";
@@ -465,6 +471,14 @@ function renderTeachCard(v) {
   }
   const rej = v.students.reduce((a, s) => a + (s.rejected || 0), 0);
   if (rej > 0) lines.push(`有 <b>${rej}</b> 次录音没听清，提醒这些学生大声一点、读慢一点`);
+  const weakPhones = (v.phone_stats || []).filter((p) => p.avg < -1.5).slice(0, 3);
+  if (weakPhones.length) {
+    lines.push("音素小弱点：" + weakPhones.map((p) => {
+      const tip = (window.PHONE_TIPS && window.PHONE_TIPS[p.p])
+        ? `，${window.PHONE_TIPS[p.p]}` : "";
+      return `/${p.p}/ 有 ${p.weak} 人次读弱${tip}`;
+    }).join("；"));
+  }
   $("teach-summary").innerHTML =
     `<div class="teach-card"><h4>教学小结</h4>` +
     lines.map((l) => `<p>· ${l}</p>`).join("") + "</div>";
@@ -520,6 +534,7 @@ async function downloadXfDebug() {
   try {
     const r = await call("xf_debug", { code });
     if (!r.ok) { setMsg($("report-msg"), "下载失败：" + r.error); return; }
+    if (r.enabled === false) { setMsg($("report-msg"), r.error || "原始数据采集开关是关闭的"); return; }
     if (!r.count) { setMsg($("report-msg"), "还没有抓到数据——先让学生读几句，再来下载"); return; }
     const parts = r.items.map((it) =>
       "===== 第 " + (Number(String(it.idx).split("_")[0]) + 1) + " 句（idx=" + it.idx + "） =====\n" + it.xml);

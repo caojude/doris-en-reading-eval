@@ -271,14 +271,67 @@ function audioPeak(samples) {
 // ---------------- 结果显示 ----------------
 function chipClass(s) { return s >= 80 ? "w-good" : s >= 60 ? "w-mid" : "w-bad"; }
 
+function renderDims(res) {
+  const el = $("dims-row");
+  const d = res.dims;
+  if (!d || d.accuracy == null) { el.innerHTML = ""; el.classList.add("hidden"); return; }
+  const mk = (label, v) => '<span class="dim"><b>' + Math.round(v) + '</b> ' + label + "</span>";
+  el.innerHTML = mk("准确度", d.accuracy) + mk("流畅度", d.fluency) + mk("完整度", d.integrity);
+  el.classList.remove("hidden");
+}
+
+function showPhonePanel(wd) {
+  const panel = $("phone-detail");
+  panel.innerHTML = "";
+  const head = document.createElement("div");
+  head.className = "phone-head";
+  head.textContent = wd.word + "　" + Math.round(wd.score) + " 分　";
+  const listen = document.createElement("button");
+  listen.type = "button";
+  listen.className = "secondary";
+  listen.textContent = "听示范";
+  listen.onclick = () => speakText(wd.word);
+  head.appendChild(listen);
+  panel.appendChild(head);
+  (wd.sylls || []).forEach((syl) => {
+    const row = document.createElement("div");
+    row.className = "phone-row";
+    const tag = document.createElement("span");
+    if (syl.score == null) {
+      tag.className = "chip w-mid";
+      tag.textContent = "音节";
+    } else {
+      tag.className = "chip " + chipClass(syl.score);
+      tag.textContent = Math.round(syl.score) + " 分";
+    }
+    row.appendChild(tag);
+    (syl.phones || []).forEach((ph) => {
+      const phEl = document.createElement("span");
+      const band = ph.g == null ? "" : ph.g >= -1.5 ? "p-good" : ph.g >= -4 ? "p-mid" : "p-bad";
+      phEl.className = "phone " + band;
+      const label = ph.g == null ? "" : band === "p-good" ? " 很棒" : band === "p-mid" ? " 还可以" : " 练一练";
+      phEl.textContent = "/" + ph.p + "/" + label;
+      const tip = window.PHONE_TIPS && window.PHONE_TIPS[ph.p];
+      if (tip && band !== "p-good" && band !== "") phEl.title = tip;
+      row.appendChild(phEl);
+    });
+    panel.appendChild(row);
+  });
+  panel.classList.remove("hidden");
+}
+
 function renderResult(res) {
   const area = $("result-area");
   area.classList.remove("hidden");
   $("score-total").textContent = Math.round(res.total) + " 分";
+  renderDims(res);
   const chips = $("word-chips");
   chips.innerHTML = "";
+  $("phone-detail").classList.add("hidden");
   const items = (res.detail && res.detail.length) ? res.detail
     : (res.words || []).map((w) => ({ t: "w", w: w.word, s: w.score }));
+  const wordList = res.words || [];
+  let wi = 0;
   let pauseRun = 0;
   const flushPause = () => {
     if (!pauseRun) return;
@@ -293,7 +346,11 @@ function renderResult(res) {
     if (it.t === "p") { pauseRun += 1; return; }
     flushPause();
     const span = document.createElement("span");
-    if (it.t === "x") {
+    if (it.t === "r") {
+      span.className = "repeat-mark";
+      span.textContent = "↻" + it.w;
+      span.title = "「" + it.w + "」读了两遍，第一遍不太准";
+    } else if (it.t === "x") {
       span.className = "chip w-extra";
       span.textContent = it.w;
       span.title = "多读的词：" + it.w + "（课文里没有它哦）";
@@ -301,7 +358,13 @@ function renderResult(res) {
       span.className = "chip " + chipClass(it.s);
       span.textContent = it.w;
       span.title = it.w + "：" + it.s + " 分";
-      span.onclick = () => speakText(it.w);
+      const wd = wordList[wi] || null;
+      wi += 1;
+      if (wd && (wd.sylls || []).length) {
+        span.onclick = () => showPhonePanel(wd);
+      } else {
+        span.onclick = () => speakText(it.w);
+      }
     }
     chips.appendChild(span);
   });
@@ -316,6 +379,7 @@ function feedbackLine(res) {
     parts.push("没有听清，声音再大一点、慢一点");
   } else {
     if ((res.pauses || 0) >= 2) parts.push("有 " + res.pauses + " 处停顿，连起来读会更棒");
+    if ((res.repeats || 0) > 0) parts.push("有 " + res.repeats + " 处回读（读了又改），试着一次读对");
     if ((res.extras || []).length) parts.push("多读了 " + res.extras.length + " 个词，只读屏幕上的句子哦");
   }
   if (!parts.length) {

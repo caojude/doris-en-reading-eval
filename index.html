@@ -90,6 +90,18 @@
   .chip.w-bad  { background: #e25f5f; }
   .chip.w-extra { background: #b9a088; }
   .pause-mark { color: #c98a5e; font-size: 15px; font-weight: bold; margin: 0 2px; white-space: nowrap; }
+  .repeat-mark { color: #e08a3c; font-size: 15px; font-weight: bold; margin: 0 2px; white-space: nowrap; }
+  .dims-row { display: flex; gap: 8px; justify-content: center; margin: 8px 0 2px; flex-wrap: wrap; }
+  .dim { background: #fff3e6; border-radius: 16px; padding: 3px 12px; font-size: 13px; color: #8a6a4f; }
+  .dim b { color: #f2773f; font-size: 15px; }
+  .phone-detail { background: #fff8ee; border: 1px solid #f0d9b8; border-radius: 12px; padding: 10px 12px; margin: 8px 0; }
+  .phone-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; font-size: 15px; color: #4a3a2c; }
+  .phone-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 4px 0; }
+  .phone-row .chip { padding: 4px 10px; font-size: 13px; }
+  .phone { padding: 3px 10px; border-radius: 14px; font-size: 13px; color: #fff; }
+  .phone.p-good { background: #4caf6d; }
+  .phone.p-mid  { background: #f0b429; cursor: help; }
+  .phone.p-bad  { background: #e25f5f; cursor: help; }
   .tip { color: #b08a6a; font-size: 12px; text-align: center; margin: 4px 0 10px; }
   .recording { animation: pulse 1.2s infinite; }
   @keyframes pulse { 0%,100% { background: #ff8a5c; } 50% { background: #e25f5f; } }
@@ -142,8 +154,10 @@
       <p id="status" class="msg"></p>
       <div id="result-area" class="hidden">
         <p class="score">得分 <b id="score-total"></b></p>
+        <div id="dims-row" class="dims-row hidden"></div>
         <div id="word-chips" class="chips"></div>
-        <p class="tip">点单词听发音 · 绿色=真棒 黄色=加油 红色=再练练</p>
+        <div id="phone-detail" class="phone-detail hidden"></div>
+        <p class="tip">点单词看音素讲解 · 绿色=真棒 黄色=加油 红色=再练练</p>
         <div class="btn-row">
           <button id="retry-btn" class="secondary">再读一遍</button>
           <button id="next-btn">下一句</button>
