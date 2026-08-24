@@ -52,6 +52,8 @@
   }
   button:disabled { background: #e9d3c3; cursor: not-allowed; }
   button.secondary { background: #8ec5ef; }
+  button.btn-small { width: auto; padding: 8px 18px; font-size: 14px; border-radius: 20px; }
+  .btn-small-wrap { text-align: center; margin-top: 14px; }
   .btn-row { display: flex; gap: 10px; }
   .btn-row button { flex: 1; }
   .hidden { display: none !important; }
@@ -115,10 +117,12 @@
       </label>
       <label>你的名字（先点一下输入框再选，也可以直接打字）
         <input id="name-input" list="name-list" autocomplete="off" placeholder="先输入作业码">
-        <datalist id="name-list"></datalist>
       </label>
       <button id="btn-enter">开始练习</button>
       <p id="enter-msg" class="msg"></p>
+    </div>
+    <div class="btn-small-wrap">
+      <button id="btn-feedback" class="btn-small secondary">给老师留言</button>
     </div>
   </section>
 
@@ -151,17 +155,30 @@
     <p class="big-score">总分 <b id="final-score"></b></p>
     <p id="final-msg" class="msg"></p>
     <ul id="final-list"></ul>
-    <div class="card">
-      <label>给老师的悄悄话（选填）
-        <textarea id="feedback-text" rows="3" placeholder="想对老师说点什么吗？"></textarea>
-      </label>
-      <button id="feedback-btn" class="secondary">发给老师</button>
-      <p id="feedback-msg" class="msg"></p>
-    </div>
     <button id="btn-restart" class="secondary">再练一次</button>
   </section>
 
+  <section id="step-feedback" class="hidden">
+    <h1>给老师留言</h1>
+    <p class="sub">悄悄话会直接送到老师的后台，只有老师能看到哦</p>
+    <div class="card">
+      <label>作业码
+        <input id="fb-code-input" inputmode="numeric" placeholder="老师发的 4 位作业码">
+      </label>
+      <label>你的名字
+        <input id="fb-name-input" list="name-list" autocomplete="off" placeholder="先输入作业码">
+      </label>
+      <label>想对老师说的话
+        <textarea id="fb-text" rows="4" placeholder="写点什么吧…"></textarea>
+      </label>
+      <button id="btn-fb-send">发给老师</button>
+      <button id="btn-fb-back" class="secondary">返回</button>
+      <p id="fb-msg" class="msg"></p>
+    </div>
+  </section>
+
 </div>
+<datalist id="name-list"></datalist>
 <script src="config.js"></script>
 <script src="student.js"></script>
 </body>

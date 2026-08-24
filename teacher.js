@@ -6,6 +6,8 @@ let lastReport = null;    // report 接口原始返回
 let currentView = null;   // 当前展示的统计对象（多班级时是其中一个班）
 let classList = [];       // [{id,name,count,names,created}]
 let selectedClassId = ""; // 班级管理里正在编辑的班级
+let lastHistoryItems = [];// 历次作业列表缓存
+let editingCode = "";     // 正在编辑再发布的作业码（空 = 新发布）
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
@@ -23,14 +25,37 @@ async function call(action, payload) {
   const resp = await fetch(API, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(Object.assign({ action, password: $("pw-input").value || "" }, payload || {})),
+    body: JSON.stringify(Object.assign({ action, password: sessionStorage.getItem("pw") || "" }, payload || {})),
   });
   return await resp.json();
 }
 
+// ---------------- 登录门禁 ----------------
+async function tryLogin(pw) {
+  try {
+    const resp = await fetch(API, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "get_roster", password: pw }),
+    });
+    const r = await resp.json();
+    if (!r.ok) {
+      setMsg($("gate-msg"), r.error && r.error.indexOf("管理密码不正确") >= 0 ? "密码不正确，请重新输入" : "登录失败：" + (r.error || "网络错误"));
+      return false;
+    }
+    sessionStorage.setItem("pw", pw);
+    $("login-gate").classList.add("hidden");
+    showTab("tab-publish");
+    return true;
+  } catch (e) {
+    setMsg($("gate-msg"), "登录失败：" + e.message);
+    return false;
+  }
+}
+
 // ---------------- 页签 ----------------
 function showTab(name) {
-  ["tab-publish", "tab-class", "tab-feedback", "tab-report"].forEach((t) =>
+  ["tab-publish", "tab-class", "tab-report", "tab-feedback"].forEach((t) =>
     $(t).classList.toggle("hidden", t !== name));
   document.querySelectorAll(".tab-btn").forEach((b) => b.classList.toggle("active", b.dataset.tab === name));
   if (name === "tab-publish") { loadPublishClasses(); loadHistory(); }
@@ -65,16 +90,53 @@ async function publish() {
   const classIds = Array.from(document.querySelectorAll("#pub-classes input:checked")).map((x) => x.value);
   if (!classIds.length) { setMsg($("pub-msg"), "请先到“班级管理”建好班级和名单，再回来勾选至少一个班级"); return; }
   try {
-    const r = await call("publish", { code, title, text, class_ids: classIds });
-    if (!r.ok) { setMsg($("pub-msg"), "发布失败：" + r.error); return; }
-    const url = location.href.replace(/teacher\.html.*$/, "") + "index.html?code=" + encodeURIComponent(code);
+    const r = await call(editingCode ? "update_assignment" : "publish", { code, title, text, class_ids: classIds });
+    if (!r.ok) { setMsg($("pub-msg"), "更新失败：" + r.error); return; }
     $("pub-msg").classList.add("ok");
-    $("pub-msg").innerHTML = "发布成功！共 " + r.sentences.length + " 句。<br>学生链接（复制发到家长群）：" +
-      `<input readonly value="${escapeHtml(url)}" onclick="this.select()" style="width:100%;margin-top:6px">`;
+    if (editingCode) {
+      const note = r.cleared ? " 提示：课文句子有改动，该作业之前的成绩已清空。" : "";
+      cancelEdit();
+      $("pub-msg").classList.add("ok");
+      $("pub-msg").innerHTML = "更新成功！共 " + r.sentences.length + " 句。" + note;
+    } else {
+      const url = location.href.replace(/teacher\.html.*$/, "") + "index.html?code=" + encodeURIComponent(code);
+      $("pub-msg").innerHTML = "发布成功！共 " + r.sentences.length + " 句。<br>学生链接（复制发到家长群）：" +
+        `<input readonly value="${escapeHtml(url)}" onclick="this.select()" style="width:100%;margin-top:6px">`;
+    }
     loadHistory();
   } catch (e) {
     setMsg($("pub-msg"), "发布失败：" + e.message);
   }
+}
+
+async function editAssignment(code) {
+  const it = lastHistoryItems.find((x) => x.code === code);
+  if (!it) return;
+  await loadPublishClasses();
+  $("pub-code").value = it.code;
+  $("pub-title").value = it.title || "";
+  $("pub-text").value = it.text || "";
+  $("pub-code").disabled = true;
+  document.querySelectorAll("#pub-classes input").forEach((cb) => {
+    cb.checked = (it.classes || []).some((c) => c.id === cb.value);
+  });
+  editingCode = code;
+  $("btn-publish").textContent = "更新并发布";
+  $("btn-cancel-edit").classList.remove("hidden");
+  setMsg($("pub-msg"), "正在编辑作业 " + code + "：改完标题 / 课文 / 班级后点“更新并发布”。课文句子有变化时，之前的成绩会清空。");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function cancelEdit() {
+  editingCode = "";
+  $("pub-code").value = "";
+  $("pub-title").value = "";
+  $("pub-text").value = "";
+  $("pub-code").disabled = false;
+  document.querySelectorAll("#pub-classes input").forEach((cb) => { cb.checked = false; });
+  $("btn-publish").textContent = "发布作业";
+  $("btn-cancel-edit").classList.add("hidden");
+  setMsg($("pub-msg"), "");
 }
 
 // ---------------- 历次作业（发布页下方） ----------------
@@ -84,17 +146,20 @@ async function loadHistory() {
     const r = await call("list_assignments", {});
     if (!r.ok) { box.innerHTML = '<span class="muted">' + escapeHtml(r.error || "加载失败") + "</span>"; return; }
     const items = r.items || [];
+    lastHistoryItems = items;
     if (!items.length) { box.innerHTML = '<span class="muted">还没有发布过作业</span>'; return; }
     box.innerHTML = items.map((it) => {
       const cls = (it.classes || []).map((c) => escapeHtml(c.name)).join("、") || "旧版名单";
       return `<div class="item-row"><span class="meta"><b>${escapeHtml(it.code)}</b> · ${escapeHtml(it.title || "未命名")}（${cls}）` +
         `<br><span class="muted">${escapeHtml(it.created || "")} · ${it.sentences} 句</span></span>` +
         `<button type="button" data-act="view" data-code="${escapeHtml(it.code)}">查看报告</button>` +
+        `<button type="button" data-act="edit" data-code="${escapeHtml(it.code)}">编辑</button>` +
         `<button type="button" class="danger" data-act="del" data-code="${escapeHtml(it.code)}">删除</button></div>`;
     }).join("");
     box.querySelectorAll("button").forEach((b) => b.addEventListener("click", () => {
       const code = b.dataset.code;
       if (b.dataset.act === "view") viewReport(code);
+      else if (b.dataset.act === "edit") editAssignment(code);
       else deleteFromHistory(code, b);
     }));
   } catch (e) {
@@ -412,18 +477,11 @@ function downloadCsv() {
 
 // ---------------- 初始化 ----------------
 window.addEventListener("DOMContentLoaded", () => {
-  $("pw-input").addEventListener("input", () => {
-    sessionStorage.setItem("pw", $("pw-input").value);
-  });
-  const saved = sessionStorage.getItem("pw");
-  if (saved) $("pw-input").value = saved;
-  if (!API || API.indexOf("请替换") >= 0) {
-    setMsg($("pub-msg"), "提示：config.js 里的函数地址还没填（部署时配置）");
-  }
   document.querySelectorAll(".tab-btn").forEach((b) =>
     b.addEventListener("click", () => showTab(b.dataset.tab)));
   $("btn-gen").addEventListener("click", genCode);
   $("btn-publish").addEventListener("click", publish);
+  $("btn-cancel-edit").addEventListener("click", cancelEdit);
   $("btn-class-create").addEventListener("click", createClass);
   $("btn-class-roster").addEventListener("click", saveClassRoster);
   $("btn-feedback-refresh").addEventListener("click", loadFeedbackAssignments);
@@ -432,4 +490,20 @@ window.addEventListener("DOMContentLoaded", () => {
   $("report-select").addEventListener("change", loadReport);
   $("btn-csv").addEventListener("click", downloadCsv);
   $("btn-delete").addEventListener("click", deleteAssignment);
+
+  $("btn-gate-enter").addEventListener("click", () => {
+    const pw = $("gate-pw").value;
+    if (!pw) { setMsg($("gate-msg"), "请输入管理密码"); return; }
+    $("btn-gate-enter").disabled = true;
+    tryLogin(pw).finally(() => { $("btn-gate-enter").disabled = false; });
+  });
+  $("gate-pw").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") $("btn-gate-enter").click();
+  });
+
+  const saved = sessionStorage.getItem("pw");
+  if (saved) {
+    $("gate-pw").value = saved;
+    tryLogin(saved);
+  }
 });

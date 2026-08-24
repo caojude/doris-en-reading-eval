@@ -22,6 +22,7 @@ const state = {
 
 // 作业码 → 名单条目 [{name, class_id, class_name, label}]，label 用于展示（重名时带班级）
 let nameEntries = [];
+let entriesCode = "";
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
@@ -30,7 +31,7 @@ function escapeHtml(s) {
 }
 
 function show(id) {
-  ["step-enter", "step-practice", "step-done"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
+  ["step-enter", "step-practice", "step-done", "step-feedback"].forEach((s) => $(s).classList.toggle("hidden", s !== id));
 }
 
 function setStatus(text) { $("status").textContent = text || ""; }
@@ -68,32 +69,38 @@ async function call(action, payload) {
   return await resp.json();
 }
 
-// ---------------- 进入页面 ----------------
+// ---------------- 进入页面 / 留言页共用：按作业码加载名单 ----------------
 let loadedAssignment = null;
 
 async function loadAssignment() {
-  const code = $("code-input").value.trim();
+  const inFb = !$("step-feedback").classList.contains("hidden");
+  const codeInput = inFb ? $("fb-code-input") : $("code-input");
+  const msgEl = inFb ? $("fb-msg") : $("enter-msg");
+  const code = codeInput.value.trim();
   const list = $("name-list");
   if (code.length < 2) return;
   try {
     const r = await call("get_assignment", { code });
     if (!r.ok) {
       nameEntries = [];
+      entriesCode = "";
       list.innerHTML = "";
-      loadedAssignment = null;
-      $("enter-msg").textContent = r.error || "作业码不存在";
+      if (!inFb) loadedAssignment = null;
+      msgEl.textContent = r.error || "作业码不存在";
       return;
     }
-    loadedAssignment = r.assignment;
+    if (!inFb) loadedAssignment = r.assignment;
     nameEntries = r.names || [];
+    entriesCode = code;
     list.innerHTML = nameEntries
       .map((e) => `<option value="${escapeHtml(e.label)}"></option>`).join("");
-    $("enter-msg").textContent = "";
+    msgEl.textContent = "";
   } catch (e) {
     nameEntries = [];
+    entriesCode = "";
     list.innerHTML = "";
-    loadedAssignment = null;
-    $("enter-msg").textContent = "加载失败，请检查网络";
+    if (!inFb) loadedAssignment = null;
+    msgEl.textContent = "加载失败，请检查网络";
   }
 }
 
@@ -328,30 +335,51 @@ function finish() {
     li.textContent = s + "　—　" + (b ? Math.round(b.total) + " 分" : "未完成");
     list.appendChild(li);
   });
-  $("feedback-text").value = "";
-  $("feedback-btn").disabled = false;
-  $("feedback-btn").textContent = "发给老师";
-  $("feedback-msg").textContent = "";
+}
+
+// ---------------- 给老师留言（首页小按钮进入） ----------------
+function openFeedback() {
+  $("fb-code-input").value = $("code-input").value;
+  $("fb-name-input").value = $("name-input").value;
+  $("fb-msg").textContent = "";
+  const btn = $("btn-fb-send");
+  btn.disabled = false;
+  btn.textContent = "发给老师";
+  show("step-feedback");
+  if ($("fb-code-input").value.trim().length >= 2) loadAssignment();
+}
+
+function closeFeedback() {
+  show("step-enter");
+  if ($("code-input").value.trim().length >= 2) loadAssignment();
 }
 
 async function sendFeedback() {
-  const text = $("feedback-text").value.trim();
-  if (!text) { $("feedback-msg").textContent = "写点什么再发送吧"; return; }
-  if (text.length > 500) { $("feedback-msg").textContent = "太长啦，最多 500 字"; return; }
-  $("feedback-btn").disabled = true;
+  const code = $("fb-code-input").value.trim();
+  const typed = $("fb-name-input").value.trim();
+  const text = $("fb-text").value.trim();
+  if (!code) { $("fb-msg").textContent = "请输入作业码"; return; }
+  if (!typed) { $("fb-msg").textContent = "请输入你的名字"; return; }
+  if (entriesCode !== code) { $("fb-msg").textContent = "作业还没加载成功，请重新输入作业码"; return; }
+  const m = matchNameEntry(typed);
+  if (!m.entry) { $("fb-msg").textContent = m.error; return; }
+  if (!text) { $("fb-msg").textContent = "写点什么再发送吧"; return; }
+  if (text.length > 500) { $("fb-msg").textContent = "太长啦，最多 500 字"; return; }
+  const btn = $("btn-fb-send");
+  btn.disabled = true;
   try {
     const r = await call("feedback", {
-      code: state.code,
-      name: state.name,
-      class_id: state.classId,
+      code: code,
+      name: m.entry.name,
+      class_id: m.entry.class_id || "",
       message: text,
     });
     if (!r.ok) throw new Error(r.error || "发送失败");
-    $("feedback-msg").textContent = "已发送，老师会看到的！";
-    $("feedback-btn").textContent = "已发送";
+    $("fb-msg").textContent = "已发送，老师会看到的！";
+    btn.textContent = "已发送";
   } catch (e) {
-    $("feedback-btn").disabled = false;
-    $("feedback-msg").textContent = "发送失败：" + e.message;
+    btn.disabled = false;
+    $("fb-msg").textContent = "发送失败：" + e.message;
   }
 }
 
@@ -379,7 +407,10 @@ window.addEventListener("DOMContentLoaded", () => {
   $("record-btn").addEventListener("click", toggleRecord);
   $("retry-btn").addEventListener("click", retry);
   $("next-btn").addEventListener("click", next);
-  $("feedback-btn").addEventListener("click", sendFeedback);
+  $("btn-feedback").addEventListener("click", openFeedback);
+  $("fb-code-input").addEventListener("input", loadAssignment);
+  $("btn-fb-send").addEventListener("click", sendFeedback);
+  $("btn-fb-back").addEventListener("click", closeFeedback);
   $("btn-restart").addEventListener("click", restart);
   const pre = new URLSearchParams(location.search).get("code");
   if (pre) { $("code-input").value = pre; loadAssignment(); }
