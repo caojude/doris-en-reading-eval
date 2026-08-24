@@ -26,7 +26,7 @@
     margin-top: 12px;
   }
   label { display: block; color: #8a6a4f; font-size: 14px; margin-bottom: 12px; }
-  input, select {
+  input, select, textarea {
     width: 100%;
     margin-top: 6px;
     padding: 12px;
@@ -34,8 +34,10 @@
     border: 2px solid #f5d9c4;
     border-radius: 12px;
     outline: none;
+    font-family: inherit;
   }
-  input:focus, select:focus { border-color: #ff9a5c; }
+  textarea { resize: vertical; }
+  input:focus, select:focus, textarea:focus { border-color: #ff9a5c; }
   button {
     width: 100%;
     padding: 14px;
@@ -111,8 +113,9 @@
       <label>作业码
         <input id="code-input" inputmode="numeric" placeholder="老师发的 4 位作业码">
       </label>
-      <label>你的名字
-        <select id="name-select"><option value="">先输入作业码</option></select>
+      <label>你的名字（先点一下输入框再选，也可以直接打字）
+        <input id="name-input" list="name-list" autocomplete="off" placeholder="先输入作业码">
+        <datalist id="name-list"></datalist>
       </label>
       <button id="btn-enter">开始练习</button>
       <p id="enter-msg" class="msg"></p>
@@ -148,6 +151,13 @@
     <p class="big-score">总分 <b id="final-score"></b></p>
     <p id="final-msg" class="msg"></p>
     <ul id="final-list"></ul>
+    <div class="card">
+      <label>给老师的悄悄话（选填）
+        <textarea id="feedback-text" rows="3" placeholder="想对老师说点什么吗？"></textarea>
+      </label>
+      <button id="feedback-btn" class="secondary">发给老师</button>
+      <p id="feedback-msg" class="msg"></p>
+    </div>
     <button id="btn-restart" class="secondary">再练一次</button>
   </section>
 

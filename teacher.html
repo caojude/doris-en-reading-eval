@@ -106,6 +106,29 @@
   .chip.w-mid  { background: #e8b53a; }
   .chip.w-bad  { background: #e25f5f; }
   .chip i { font-style: normal; font-size: 11px; opacity: .9; margin-left: 4px; }
+  .class-checks { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+  .class-checks label {
+    display: flex; align-items: center; gap: 6px;
+    background: #fff3e6; padding: 8px 12px; border-radius: 10px; margin: 0;
+  }
+  .class-checks input { margin: 0; width: auto; }
+  .item-list { margin-top: 10px; }
+  .item-row {
+    display: flex; align-items: center; gap: 10px;
+    background: #fff3e6; border-radius: 10px; padding: 10px 14px; margin-bottom: 8px;
+  }
+  .item-row .meta { flex: 1; font-size: 13px; color: #8a6a4f; }
+  .item-row .meta b { color: #b85a2a; }
+  .item-row button { padding: 6px 12px; font-size: 13px; flex-shrink: 0; }
+  .class-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .class-tabs button { padding: 8px 14px; font-size: 13px; background: #f5e6d3; color: #8a6a4f; }
+  .class-tabs button.active { background: #ff8a5c; color: #fff; }
+  .fb-item { background: #fff3e6; border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; }
+  .fb-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .fb-name { font-weight: 600; color: #b85a2a; }
+  .fb-time { color: #a08a72; font-size: 12px; flex: 1; }
+  .fb-head button { padding: 5px 10px; font-size: 12px; }
+  .fb-text { font-size: 14px; color: #4a3a2c; white-space: pre-wrap; word-break: break-word; }
 </style>
 </head>
 <body>
@@ -115,7 +138,8 @@
 </header>
 <nav>
   <button class="tab-btn active" data-tab="tab-publish">发布作业</button>
-  <button class="tab-btn" data-tab="tab-roster">班级名单</button>
+  <button class="tab-btn" data-tab="tab-class">班级管理</button>
+  <button class="tab-btn" data-tab="tab-feedback">留言板</button>
   <button class="tab-btn" data-tab="tab-report">学情报告</button>
 </nav>
 <main>
@@ -131,15 +155,40 @@
     <label>课文内容（把课本句子粘贴进来，一句一行，句末带标点，程序会自动按句切分）
       <textarea id="pub-text" rows="10" placeholder="Hello, I'm Mike.&#10;What's your name?&#10;Nice to meet you."></textarea>
     </label>
+    <label>发给哪些班级？（可多选；先在"班级管理"里建好班级和名单）
+      <div id="pub-classes" class="class-checks"></div>
+    </label>
     <button id="btn-publish">发布作业</button>
     <p id="pub-msg" class="msg"></p>
+    <h3>历次作业（可查看报告或删除）</h3>
+    <div id="pub-history" class="item-list"></div>
   </section>
 
-  <section id="tab-roster" class="hidden">
-    <h2>班级名单（一行一个名字，保存后学生才能提交）</h2>
-    <textarea id="roster-input" rows="15" placeholder="张三&#10;李四&#10;王五"></textarea>
-    <button id="btn-roster">保存名单</button>
-    <p id="roster-msg" class="msg"></p>
+  <section id="tab-class" class="hidden">
+    <h2>班级管理</h2>
+    <p class="muted">一个作业可以发给多个班级，统计按班级分开。删掉班级后，用它的作业里就不再显示这个班。</p>
+    <div class="row">
+      <input id="class-new-name" placeholder="新班级名称，如：三（1）班">
+      <button id="btn-class-create" type="button">新建班级</button>
+    </div>
+    <p id="class-msg" class="msg"></p>
+    <div id="class-list" class="item-list"></div>
+    <div id="class-edit" class="hidden">
+      <h3 id="class-edit-title"></h3>
+      <textarea id="class-roster-input" rows="12" placeholder="一行一个名字&#10;张三&#10;李四&#10;王五"></textarea>
+      <button id="btn-class-roster">保存名单</button>
+      <p id="class-roster-msg" class="msg"></p>
+    </div>
+  </section>
+
+  <section id="tab-feedback" class="hidden">
+    <h2>学生留言板（实名留言，老师可删除单条）</h2>
+    <div class="row">
+      <select id="feedback-select"></select>
+      <button id="btn-feedback-refresh" type="button">刷新</button>
+    </div>
+    <p id="feedback-msg" class="msg"></p>
+    <div id="feedback-list" class="item-list"></div>
   </section>
 
   <section id="tab-report" class="hidden">
@@ -151,6 +200,8 @@
     </div>
     <p class="muted">删除作业后，学生端的对应链接作废，成绩数据也会一并删除。</p>
     <p id="report-msg" class="msg"></p>
+    <div id="class-tabs" class="class-tabs"></div>
+    <p id="report-class-name" class="muted"></p>
     <div id="report-summary" class="cards"></div>
     <button id="btn-csv">导出表格（Excel 可打开）</button>
     <h3>学生明细</h3>

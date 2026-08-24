@@ -8,6 +8,7 @@ const $ = (id) => document.getElementById(id);
 const state = {
   code: "",
   name: "",
+  classId: "",
   assignment: null,
   idx: 0,
   best: [],
@@ -18,6 +19,9 @@ const state = {
   chunks: [],
   recordStart: 0,
 };
+
+// 作业码 → 名单条目 [{name, class_id, class_name, label}]，label 用于展示（重名时带班级）
+let nameEntries = [];
 
 function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, (c) => (
@@ -69,35 +73,54 @@ let loadedAssignment = null;
 
 async function loadAssignment() {
   const code = $("code-input").value.trim();
-  const sel = $("name-select");
+  const list = $("name-list");
   if (code.length < 2) return;
   try {
     const r = await call("get_assignment", { code });
     if (!r.ok) {
-      sel.innerHTML = '<option value="">' + escapeHtml(r.error || "作业码不存在") + "</option>";
+      nameEntries = [];
+      list.innerHTML = "";
       loadedAssignment = null;
+      $("enter-msg").textContent = r.error || "作业码不存在";
       return;
     }
     loadedAssignment = r.assignment;
-    sel.innerHTML = '<option value="">请选择你的名字</option>' +
-      (r.names || []).map((n) => `<option value="${escapeHtml(n)}">${escapeHtml(n)}</option>`).join("");
+    nameEntries = r.names || [];
+    list.innerHTML = nameEntries
+      .map((e) => `<option value="${escapeHtml(e.label)}"></option>`).join("");
+    $("enter-msg").textContent = "";
   } catch (e) {
-    sel.innerHTML = '<option value="">加载失败，请检查网络</option>';
+    nameEntries = [];
+    list.innerHTML = "";
     loadedAssignment = null;
+    $("enter-msg").textContent = "加载失败，请检查网络";
   }
+}
+
+function matchNameEntry(typed) {
+  // 精确匹配展示名（如"王五（三1班）"）；名字唯一时也接受只输入名字
+  const exact = nameEntries.find((e) => e.label === typed);
+  if (exact) return { entry: exact };
+  const byName = nameEntries.filter((e) => e.name === typed);
+  if (byName.length === 1) return { entry: byName[0] };
+  if (byName.length > 1) return { error: "这个名字在多个班级都有，请写明班级，如：" + byName[0].label };
+  return { error: "名单里没有这个名字，请核对后重新输入" };
 }
 
 async function enter() {
   const code = $("code-input").value.trim();
-  const name = $("name-select").value;
+  const typed = $("name-input").value.trim();
   if (!code) { $("enter-msg").textContent = "请输入作业码"; return; }
-  if (!name) { $("enter-msg").textContent = "请选择你的名字"; return; }
+  if (!typed) { $("enter-msg").textContent = "请输入你的名字"; return; }
   if (!loadedAssignment || loadedAssignment.code !== code) {
     $("enter-msg").textContent = "作业还没加载成功，请重新输入作业码";
     return;
   }
+  const m = matchNameEntry(typed);
+  if (!m.entry) { $("enter-msg").textContent = m.error; return; }
   state.code = code;
-  state.name = name;
+  state.name = m.entry.name;
+  state.classId = m.entry.class_id || "";
   state.assignment = loadedAssignment;
   state.idx = 0;
   state.best = [];
@@ -169,6 +192,7 @@ async function onRecordStop() {
     const r = await call("evaluate", {
       code: state.code,
       name: state.name,
+      class_id: state.classId,
       text: state.assignment.sentences[state.idx],
       idx: state.idx,
       audio: conv.b64,
@@ -304,14 +328,41 @@ function finish() {
     li.textContent = s + "　—　" + (b ? Math.round(b.total) + " 分" : "未完成");
     list.appendChild(li);
   });
+  $("feedback-text").value = "";
+  $("feedback-btn").disabled = false;
+  $("feedback-btn").textContent = "发给老师";
+  $("feedback-msg").textContent = "";
+}
+
+async function sendFeedback() {
+  const text = $("feedback-text").value.trim();
+  if (!text) { $("feedback-msg").textContent = "写点什么再发送吧"; return; }
+  if (text.length > 500) { $("feedback-msg").textContent = "太长啦，最多 500 字"; return; }
+  $("feedback-btn").disabled = true;
+  try {
+    const r = await call("feedback", {
+      code: state.code,
+      name: state.name,
+      class_id: state.classId,
+      message: text,
+    });
+    if (!r.ok) throw new Error(r.error || "发送失败");
+    $("feedback-msg").textContent = "已发送，老师会看到的！";
+    $("feedback-btn").textContent = "已发送";
+  } catch (e) {
+    $("feedback-btn").disabled = false;
+    $("feedback-msg").textContent = "发送失败：" + e.message;
+  }
 }
 
 function restart() {
   state.code = "";
   state.name = "";
+  state.classId = "";
   state.assignment = null;
   state.idx = 0;
   state.best = [];
+  $("name-input").value = "";
   $("enter-msg").textContent = "";
   show("step-enter");
 }
@@ -328,6 +379,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("record-btn").addEventListener("click", toggleRecord);
   $("retry-btn").addEventListener("click", retry);
   $("next-btn").addEventListener("click", next);
+  $("feedback-btn").addEventListener("click", sendFeedback);
   $("btn-restart").addEventListener("click", restart);
   const pre = new URLSearchParams(location.search).get("code");
   if (pre) { $("code-input").value = pre; loadAssignment(); }
