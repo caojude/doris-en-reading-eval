@@ -89,6 +89,9 @@
   }
   .stat-card b { display: block; font-size: 22px; color: #d2602f; }
   .stat-card span { font-size: 12px; color: #a08a72; }
+  .teach-card { background: #fff7e8; border: 1px solid #f0d9b8; border-radius: 10px; padding: 12px 16px; margin: 10px 0; }
+  .teach-card h4 { margin: 0 0 8px; color: #d2602f; font-size: 15px; }
+  .teach-card p { margin: 4px 0; font-size: 14px; color: #4a3a2c; }
   .table-wrap { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; font-size: 14px; }
   th, td { border: 1px solid #f0e0cc; padding: 8px 10px; text-align: center; }
@@ -232,7 +235,9 @@
     <div id="class-tabs" class="class-tabs"></div>
     <p id="report-class-name" class="muted"></p>
     <div id="report-summary" class="cards"></div>
+    <div id="teach-summary"></div>
     <button id="btn-csv">导出表格（Excel 可打开）</button>
+    <button id="btn-xf-debug" class="secondary">下载讯飞原始数据（调试用）</button>
     <h3>学生明细</h3>
     <div class="table-wrap"><table id="student-table"></table></div>
     <h3>逐句错误统计（红色的词 = 全班错得多的词，就是你的教学重点）</h3>

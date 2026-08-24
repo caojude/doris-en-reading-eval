@@ -277,20 +277,51 @@ function renderResult(res) {
   $("score-total").textContent = Math.round(res.total) + " 分";
   const chips = $("word-chips");
   chips.innerHTML = "";
-  (res.words || []).forEach((w) => {
+  const items = (res.detail && res.detail.length) ? res.detail
+    : (res.words || []).map((w) => ({ t: "w", w: w.word, s: w.score }));
+  let pauseRun = 0;
+  const flushPause = () => {
+    if (!pauseRun) return;
+    const m = document.createElement("span");
+    m.className = "pause-mark";
+    m.textContent = "⏸" + (pauseRun > 1 ? "×" + pauseRun : "");
+    m.title = "这里停顿了 " + pauseRun + " 次";
+    chips.appendChild(m);
+    pauseRun = 0;
+  };
+  items.forEach((it) => {
+    if (it.t === "p") { pauseRun += 1; return; }
+    flushPause();
     const span = document.createElement("span");
-    span.className = "chip " + chipClass(w.score);
-    span.textContent = w.word;
-    span.title = w.word + "：" + w.score + " 分";
-    span.onclick = () => speakText(w.word);
+    if (it.t === "x") {
+      span.className = "chip w-extra";
+      span.textContent = it.w;
+      span.title = "多读的词：" + it.w + "（课文里没有它哦）";
+    } else {
+      span.className = "chip " + chipClass(it.s);
+      span.textContent = it.w;
+      span.title = it.w + "：" + it.s + " 分";
+      span.onclick = () => speakText(it.w);
+    }
     chips.appendChild(span);
   });
-  if (res.is_rejected) {
-    setStatus("没有听清，再读一遍吧");
-  } else {
-    setStatus(res.total >= 80 ? "太棒了！" : "加油！先听一下示范，再读一遍会更棒！");
-  }
+  flushPause();
+  setStatus(feedbackLine(res));
   updateAttemptsText();
+}
+
+function feedbackLine(res) {
+  const parts = [];
+  if (res.is_rejected) {
+    parts.push("没有听清，声音再大一点、慢一点");
+  } else {
+    if ((res.pauses || 0) >= 2) parts.push("有 " + res.pauses + " 处停顿，连起来读会更棒");
+    if ((res.extras || []).length) parts.push("多读了 " + res.extras.length + " 个词，只读屏幕上的句子哦");
+  }
+  if (!parts.length) {
+    parts.push(res.total >= 80 ? "太棒了！" : "加油！先听一下示范，再读一遍会更棒！");
+  }
+  return parts.join("；");
 }
 
 function updateAttemptsText() {

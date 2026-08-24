@@ -404,12 +404,15 @@ function renderView(v) {
     card("句子数", lastReport ? lastReport.assignment.sentences.length : "?"),
   ].join("");
 
-  const thead = "<tr><th>姓名</th><th>完成</th><th>平均分</th><th>重读次数</th><th>用时(分)</th></tr>";
-  const tbody = v.students.map((s) =>
-    `<tr><td>${escapeHtml(s.name)}</td><td>${s.done}/${s.total}</td><td>${s.avg}</td>` +
-    `<td>${s.attempts}</td><td>${Math.round(s.duration_s / 60)}</td></tr>`
-  ).join("");
+  const thead = "<tr><th>姓名</th><th>完成</th><th>平均分</th><th>重读次数</th><th>平均嗯啊</th><th>没听清</th><th>用时(分)</th></tr>";
+  const tbody = v.students.map((s) => {
+    const avgPause = (s.pauses / Math.max(1, s.attempts)).toFixed(1);
+    return `<tr><td>${escapeHtml(s.name)}</td><td>${s.done}/${s.total}</td><td>${s.avg}</td>` +
+      `<td>${s.attempts}</td><td>${avgPause}</td><td>${s.rejected || 0}</td>` +
+      `<td>${Math.round(s.duration_s / 60)}</td></tr>`;
+  }).join("");
   $("student-table").innerHTML = thead + tbody;
+  renderTeachCard(v);
 
   $("sentence-stats").innerHTML = v.sentences.map((ss) => {
     const chips = (ss.word_stats || []).map((w) => {
@@ -418,8 +421,9 @@ function renderView(v) {
       return `<span class="chip ${cls}" title="${escapeHtml(w.word)}：平均 ${w.avg} 分，${w.wrong} 人读错">` +
         `${escapeHtml(w.word)}<i>${w.wrong}</i></span>`;
     }).join("");
+    const pauseNote = ss.pauses_avg > 0 ? `，平均停顿 ${ss.pauses_avg} 次` : "";
     return `<div class="sent-item"><p class="sent-text">${ss.idx + 1}. ${escapeHtml(ss.text)} ` +
-      `<span class="muted">（${ss.count} 人完成，均分 ${ss.avg}）</span></p>` +
+      `<span class="muted">（${ss.count} 人完成，均分 ${ss.avg}${pauseNote}）</span></p>` +
       `<div class="chips">${chips || '<span class="muted">暂无数据</span>'}</div></div>`;
   }).join("");
 
@@ -431,6 +435,39 @@ function renderView(v) {
   } else {
     setMsg(un, "");
   }
+}
+
+function renderTeachCard(v) {
+  const lines = [];
+  const unfin = v.unfinished || [];
+  lines.push(unfin.length
+    ? `<b>${unfin.length} 位同学还没完成</b>（名单见下方），记得提醒哦`
+    : "全部同学都完成了，太棒了！");
+  let worst = null;
+  v.sentences.forEach((ss) => {
+    if ((ss.pauses_avg || 0) > 0 && (!worst || ss.pauses_avg > worst.pauses_avg)) worst = ss;
+  });
+  if (worst) {
+    lines.push(`第 ${worst.idx + 1} 句「${escapeHtml(worst.text)}」平均停顿 <b>${worst.pauses_avg}</b> 次，读得最磕巴，建议课堂带读`);
+  } else {
+    lines.push("没有发现明显的停顿问题，大家读得都很流畅");
+  }
+  let hard = null;
+  v.sentences.forEach((ss) => {
+    (ss.word_stats || []).forEach((w) => {
+      if (w.wrong > 0 && (!hard || w.wrong > hard.wrong)) hard = w;
+    });
+  });
+  if (hard) {
+    lines.push(`单词「${escapeHtml(hard.word)}」有 <b>${hard.wrong}</b> 人读错（均分 ${hard.avg}），是共性难点`);
+  } else {
+    lines.push("单词掌握情况都不错，继续加油");
+  }
+  const rej = v.students.reduce((a, s) => a + (s.rejected || 0), 0);
+  if (rej > 0) lines.push(`有 <b>${rej}</b> 次录音没听清，提醒这些学生大声一点、读慢一点`);
+  $("teach-summary").innerHTML =
+    `<div class="teach-card"><h4>教学小结</h4>` +
+    lines.map((l) => `<p>· ${l}</p>`).join("") + "</div>";
 }
 
 async function deleteAssignment() {
@@ -446,6 +483,7 @@ async function deleteAssignment() {
     $("class-tabs").innerHTML = "";
     $("report-class-name").textContent = "";
     $("report-summary").innerHTML = "";
+    $("teach-summary").innerHTML = "";
     $("student-table").innerHTML = "";
     $("sentence-stats").innerHTML = "";
     setMsg($("unfinished"), "");
@@ -462,9 +500,10 @@ function csvCell(v) {
 
 function downloadCsv() {
   if (!currentView || !lastReport) return;
-  const rows = [["姓名", "完成句数", "总句数", "平均分", "重读次数", "用时(秒)"]];
+  const rows = [["姓名", "完成句数", "总句数", "平均分", "重读次数", "平均嗯啊", "没听清", "用时(秒)"]];
   currentView.students.forEach((s) => {
-    rows.push([s.name, s.done, s.total, s.avg, s.attempts, s.duration_s]);
+    rows.push([s.name, s.done, s.total, s.avg, s.attempts,
+      (s.pauses / Math.max(1, s.attempts)).toFixed(1), s.rejected || 0, s.duration_s]);
   });
   const csv = "﻿" + rows.map((row) => row.map(csvCell).join(",")).join("\r\n");
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
@@ -473,6 +512,26 @@ function downloadCsv() {
   a.download = "作业" + lastReport.assignment.code +
     (currentView.class_name ? "-" + currentView.class_name : "") + "-学情.csv";
   a.click();
+}
+
+async function downloadXfDebug() {
+  const code = $("report-select").value;
+  if (!code) { setMsg($("report-msg"), "请先选择一个作业"); return; }
+  try {
+    const r = await call("xf_debug", { code });
+    if (!r.ok) { setMsg($("report-msg"), "下载失败：" + r.error); return; }
+    if (!r.count) { setMsg($("report-msg"), "还没有抓到数据——先让学生读几句，再来下载"); return; }
+    const parts = r.items.map((it) =>
+      "===== 第 " + (Number(it.idx) + 1) + " 句（idx=" + it.idx + "） =====\n" + it.xml);
+    const blob = new Blob([parts.join("\n\n")], { type: "text/plain;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "作业" + code + "-讯飞原始数据.txt";
+    a.click();
+    setMsg($("report-msg"), "已下载 " + r.count + " 句的原始数据，把这个文件发给开发者就能继续做音素分析", true);
+  } catch (e) {
+    setMsg($("report-msg"), "下载失败：" + e.message);
+  }
 }
 
 // ---------------- 初始化 ----------------
@@ -489,6 +548,7 @@ window.addEventListener("DOMContentLoaded", () => {
   $("btn-refresh").addEventListener("click", loadAssignments);
   $("report-select").addEventListener("change", loadReport);
   $("btn-csv").addEventListener("click", downloadCsv);
+  $("btn-xf-debug").addEventListener("click", downloadXfDebug);
   $("btn-delete").addEventListener("click", deleteAssignment);
 
   $("btn-gate-enter").addEventListener("click", () => {
